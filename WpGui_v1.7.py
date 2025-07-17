@@ -18,7 +18,7 @@ from urllib.parse import quote
 from datetime import datetime
 from typing import Optional
 from urllib.parse import quote
-
+from itertools import zip_longest
 
 pg.FAILSAFE = False
 WIDTH, HEIGHT = pg.size()
@@ -46,7 +46,7 @@ class log:
 
         message = self.format_message(message)
 
-        with open("PyWhatKit_DB.txt", "a", encoding="utf-8") as file:
+        with open("WpGui_DB.txt", "a", encoding="utf-8") as file:
             if w_core.check_number(receiver):
                 file.write(
                     f"Date: {_time.tm_mday}/{_time.tm_mon}/{_time.tm_year}\nTime: {_time.tm_hour}:{_time.tm_min}\n"
@@ -64,13 +64,13 @@ class log:
     def log_image(self,_time: time.struct_time, path: str, receiver: str, caption: str) -> None:
         """Logs the Image Information after it is Sent"""
 
-        if not os.path.exists("PyWhatKit_DB.txt"):
-            file = open("PyWhatKit_DB.txt", "w+")
+        if not os.path.exists("WpGui_DB.txt"):
+            file = open("WpGui_DB.txt", "w+")
             file.close()
 
         caption = self.format_message(caption)
 
-        with open("PyWhatKit_DB.txt", "a", encoding="utf-8") as file:
+        with open("WpGui_DB.txt", "a", encoding="utf-8") as file:
             if w_core.check_number(number=receiver):
                 file.write(
                     f"Date: {_time.tm_mday}/{_time.tm_mon}/{_time.tm_year}\nTime: {_time.tm_hour}:{_time.tm_min}\n"
@@ -118,15 +118,29 @@ class core:
 
     def _web(self,receiver: str, message: str) -> None:
         """Opens WhatsApp Web based on the Receiver"""
-        if self.check_number(number=receiver):
-            web.open(
-                "https://web.whatsapp.com/send?phone="
-                + receiver
-                + "&text="
-                + quote(message)
-            )
-        else:
-            web.open("https://web.whatsapp.com/accept?code=" + receiver)
+        # if self.check_number(number=receiver):
+        try:
+            if test.count == 1:
+                web.open(
+                    "https://web.whatsapp.com/send?phone="
+                    + receiver
+                    + "&text="
+                    + quote(message)           
+                )
+                time.sleep(5)
+            
+            else:
+                web.open(
+                    "https://web.whatsapp.com/send?phone="
+                    + receiver)         # use receiver only and enter text later
+                    
+            
+        except:
+            raise Exception("Web browser couldn't load requested url with number")
+            
+        # else:
+        #     pass
+            # web.open("https://web.whatsapp.com/accept?code=" + receiver)  comment as Invalid url
 
 
     def send_message(self,message: str, receiver: str, wait_time: int) -> None:
@@ -134,9 +148,11 @@ class core:
 
         self._web(receiver=receiver, message=message)
         time.sleep(wait_time) # WpGuiv1.3   [ time.sleep(7)]
+        
         # pg.click(WIDTH / 2, HEIGHT / 2)
         # time.sleep(wait_time/2)  # WpGuiv1.3  [ time.sleep(wait_time -7)]
-        if not self.check_number(number=receiver):        # removed in v1.4
+        # if not self.check_number(number=receiver):        # removed in v1.4
+        if test.count != 1:            
             for char in message:
                 if char == "\n":
                     pg.hotkey("shift", "enter")
@@ -151,7 +167,7 @@ class core:
             pass
         finally:
             pg.press("enter")
-        time.sleep(1)
+        # time.sleep(1)
 
 
     def copy_image(self,path: str) -> None:
@@ -200,7 +216,7 @@ class core:
         self._web(message=caption, receiver=receiver)
 
         # time.sleep(7)
-        time.sleep(wait_time) # WpGuiv1.3
+        time.sleep(wait_time) # WpGuiv1.3        
         # pg.click(WIDTH / 2, HEIGHT / 2)
         # time.sleep(wait_time - 7)
         # time.sleep(wait_time/2)  # WpGuiv1.3
@@ -232,7 +248,7 @@ class whatkit:
         phone_no: str,
         message: str,
         wait_time: int = 13,
-        tab_close: bool = False,
+        tab_close: bool = True,
         close_time: int = 3,
     ) -> None:
         """Send WhatsApp Message Instantly"""
@@ -242,6 +258,7 @@ class whatkit:
         
         w_core.send_message(message=message, receiver=phone_no, wait_time=wait_time)
         w_log.log_message(_time=time.localtime(), receiver=phone_no, message=message)
+        time.sleep(1)
         if tab_close:
             w_core.close_tab(wait_time=close_time)
 
@@ -251,7 +268,7 @@ class whatkit:
         time_hour: int,
         time_min: int,
         wait_time: int = 13,
-        tab_close: bool = False,
+        tab_close: bool = True,
         close_time: int = 3,
     ) -> None:
         """Send a WhatsApp Message at a Certain Time"""
@@ -283,6 +300,7 @@ class whatkit:
         time.sleep(sleep_time)
         w_core.send_message(message=message, receiver=phone_no, wait_time=wait_time)
         w_log.log_message(_time=current_time, receiver=phone_no, message=message)
+        time.sleep(1)
         if tab_close:
             w_core.close_tab(wait_time=close_time)
 
@@ -346,8 +364,8 @@ class whatkit:
         receiver: str,
         img_path: str,
         caption: str = "",
-        wait_time: int = 13,
-        tab_close: bool = False,
+        wait_time: int = 18,
+        tab_close: bool = True,
         close_time: int = 3,
     ) -> None:
         """Send Image to a WhatsApp Contact or Group at a Certain Time"""
@@ -366,8 +384,8 @@ class whatkit:
         time_hour: int,
         time_min: int,
         caption: str = "",        
-        wait_time: int = 13,
-        tab_close: bool = False,
+        wait_time: int = 18,
+        tab_close: bool = True,
         close_time: int = 3,
     ) -> None:
 
@@ -407,11 +425,13 @@ class WpMsg:
         self.image =""
         self.num_list=[]
         self.message_list = []
+        self.reciver_name_list = []
         # self.time_list = []
         self.message_text = ""  
         self.var = "Status" 
         self.csv_path = "No file selected..!"
-        self.img_path = ""       
+        self.img_path = ""   
+        self.count = 1     
 
     
     def sendMessage(self) :          
@@ -447,11 +467,22 @@ class WpMsg:
             self.wait_time = int(self.set_wait_timeField.get())
         if self.set_close_timeField.get() != "":
             self.close_time = int(self.set_close_timeField.get())
-        count = 1               # added count in v1.4
+        # self.count = 1               # added count in v1.4
+        
         try:
-            for contact in self.num_list[1:]:
+            # for contact in self.num_list[1:]:
+            # for name, contact in zip_longest(self.reciver_name_list[1:], self.num_list[1:], fillvalue=""):
+            for index, contact in enumerate(self.num_list[1:], start=1):
                 
-                contact = self.country_code+contact
+                # contact = self.country_code+contact       # try without country code
+               
+                _message = message if not self.message_list[index] else self.message_list[index]
+                
+                try:                    
+                    _message= f"Hi {self.reciver_name_list[index]},\n" + _message
+                except IndexError:
+                    _message= "Hi,\n" + _message
+
                 if self.image == "y":
                     if not contact[1:].isdigit():
                         error = """ERROR:Not Possible Image in whatsapp-group."""                        
@@ -459,30 +490,29 @@ class WpMsg:
                     else:
                         # print("image: {}".format(str(self.file_path.split("/")[-1])))
                         try:
-                            if count == 1 and schedule_time != '':
+                            if self.count == 1 and schedule_time != '':
                                 w_whats.sendwhats_image_schedule(contact, "{}".format(self.file_path), 
-                                                        hour, minut,message, 
+                                                        hour, minut, _message, 
                                                         self.wait_time, 
                                                         True, self.close_time)
                             else:                                
                                 w_whats.sendwhats_image(contact, "{}".format(self.file_path), 
-                                                                message, self.wait_time, 
+                                                                _message, self.wait_time, 
                                                                 True, self.close_time)
                         except:
                             pass
                                         
-                else:  
-                    # print("Only Text message without Image !!!")                    
+                else:                                       
                     if not contact[1:].isdigit() :
                         try:
-                            if count == 1 and schedule_time != '':              # added count in v1.4
-                                w_whats.sendwhatmsg_to_group(contact, message, 
+                            if self.count == 1 and schedule_time != '':              # added count in v1.4
+                                w_whats.sendwhatmsg_to_group(contact, _message, 
                                                                 hour, minut, 
                                                                 self.wait_time, 
                                                                 True, self.close_time)                    
                             else:
                                 w_whats.sendwhatmsg_to_group_instantly(contact, 
-                                                                    message, 
+                                                                    _message, 
                                                                     self.wait_time, 
                                                                     True, 
                                                                     self.close_time)   
@@ -490,25 +520,28 @@ class WpMsg:
                             pass
 
                     else:
-                        if count == 1 and schedule_time != '':                  # added count in v1.4
-                            w_whats.sendwhatmsg(contact, message, hour, 
+                        if self.count == 1 and schedule_time != '':                  # added count in v1.4
+                            w_whats.sendwhatmsg(contact, _message, hour, 
                                                     minut , self.wait_time, 
                                                     True, self.close_time)          
                                
                         else:
-                            w_whats.sendwhatmsg_instantly(contact, message, 
+                            w_whats.sendwhatmsg_instantly(contact, _message, 
                                                             self.wait_time, 
                                                             True, self.close_time)
-                count +=1 
-                time.sleep(2)        
+                self.count +=1 
+                time.sleep(2.5)        
             # self.sendField.insert(10, str(result)) 
+            self.send_lable.config(fg='blue',font=("TimesNewRoman",12))
             self.var.set(result)
         
         except KeyboardInterrupt:
+            self.send_lable.config(fg='brown',font=("TimesNewRoman",12))
             self.var.set(str("Execution Terminate"))
             sys.exit(1)
         
         except Exception as e:
+            self.send_lable.config(fg='red',font=("TimesNewRoman",12))
             self.var.set(error)
             # self.sendField.insert(10, str(error))
             print("{}\n{}".format(error,e))
@@ -520,6 +553,7 @@ class WpMsg:
 
         self.num_list = []
         self.message_list = []
+        self.reciver_name_list = []
         self.image = ""
         self.set_timeField.delete(0,'end')
         self.TextArea.delete(1.0,END)        
@@ -533,6 +567,7 @@ class WpMsg:
     def open_csv_file(self):
         num = []
         msg = []
+        names=[]
         t_list = []    
         file_path = filedialog.askopenfilename(defaultextension=".csv", 
                                                filetypes=[("CSV Files", "*.csv")])
@@ -547,10 +582,12 @@ class WpMsg:
                         _num=line[0].strip()
                         num.append(_num)
                         msg.append(line[1])
-                        # t_list.append(line[2])                    
+                        # t_list.append(line[2])  
+                        names.append(line[3])                  
                 self.num_list = num
                 self.message_list = msg
                 # self.time_list = t_list
+                self.reciver_name_list = names
             except Exception as e:
                 print(f"Error: {e}")  
         if self.message_list[1] != "":
@@ -583,19 +620,19 @@ class WpMsg:
         self.csv_path = StringVar()
         self.img_path = StringVar()
         csv_text = Label(gui,text = " Browse CSV File for numbers :",
-                         bg = "Light Grey", font=("TimesNewRoman",10))                       
+                         bg = "Light Grey", font=("TimesNewRoman",12))                       
         message = Label(gui,text = " Message :",bg = "Light Grey",
-                        font=("TimesNewRoman",10))                 
+                        font=("TimesNewRoman",12))                 
         set_time = Label(gui,text = "Enter Schedule Time If required :", 
-                         bg = "Light Grey", font=("TimesNewRoman",10)) 
+                         bg = "Light Grey", font=("TimesNewRoman",12)) 
         img_text = Label(gui,text = " Do you Want to send Photo/Image? ",
-                         bg = "Light Grey", font=("TimesNewRoman",10)) 
+                         bg = "Light Grey", font=("TimesNewRoman",12)) 
         self.send_lable =   Label(gui,textvariable=self.var, bg = "Dark Grey",
                                 height=2, width = 63) 
         self.csv_status = Label(gui,textvariable=self.csv_path, bg = "Light Grey",
-                                height=2, width = 20, font=("TimesNewRoman",10)) 
+                                height=2, width = 20, font=("TimesNewRoman",12)) 
         self.img_status = Label(gui,textvariable=self.img_path, bg = "Light Grey",
-                                height=2, width = 20, font=("TimesNewRoman",10)) 
+                                height=2, width = 20, font=("TimesNewRoman",12)) 
         self.TextArea = Text(gui, height = 5, width = 55)
         # Create a button to open the .csv file
         open_button = Button(gui, text="Click Here to Upload CSV file", 
@@ -613,9 +650,9 @@ class WpMsg:
             sys.exit(1)
         
         set_wait_time = Label(gui,text = "Set Wait Time (Optional) :", 
-                         bg = "Light Grey", font=("TimesNewRoman",10)) 
+                         bg = "Light Grey", font=("TimesNewRoman",12)) 
         set_close_time = Label(gui,text = "Set Close Time (Optional) :", 
-                         bg = "Light Grey", font=("TimesNewRoman",10)) 
+                         bg = "Light Grey", font=("TimesNewRoman",12)) 
         
 
         csv_text.grid(row = 15, column = 20, padx = 10, pady = 20, ipady = 5)
