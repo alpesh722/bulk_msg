@@ -119,22 +119,11 @@ class core:
     def _web(self,receiver: str, message: str) -> None:
         """Opens WhatsApp Web based on the Receiver"""
         # if self.check_number(number=receiver):
-        try:
-            if test.count == 1:
-                web.open(
-                    "https://web.whatsapp.com/send?phone="
-                    + receiver
-                    + "&text="
-                    + quote(message)           
-                )
-                time.sleep(5)
-            
-            else:
-                web.open(
-                    "https://web.whatsapp.com/send?phone="
-                    + receiver)         # use receiver only and enter text later
+        try:            
+            web.open(
+                "https://web.whatsapp.com/send?phone="
+                + receiver)         # use receiver only and enter text later
                     
-            
         except:
             raise Exception("Web browser couldn't load requested url with number")
             
@@ -152,14 +141,15 @@ class core:
         # pg.click(WIDTH / 2, HEIGHT / 2)
         # time.sleep(wait_time/2)  # WpGuiv1.3  [ time.sleep(wait_time -7)]
         # if not self.check_number(number=receiver):        # removed in v1.4
-        if test.count != 1:            
-            for char in message:
-                if char == "\n":
-                    pg.hotkey("shift", "enter")
-                else:
-                    pg.typewrite(char)
-        # else:
-        #     pg.typewrite("  ")
+
+        # if test.count != 1:            
+        #     for char in message:
+        #         if char == "\n":
+        #             pg.hotkey("shift", "enter")
+        #         else:
+        #             pg.typewrite(char)
+        # pg.click(x=100, y=200)  # Adjust coordinates to your Text widget
+        pg.hotkey('ctrl', 'v')
         try:            
             pg.press("enter")
             time.sleep(1)  
@@ -213,35 +203,33 @@ class core:
     def send_image(self,path: str, caption: str, receiver: str, wait_time: int) -> None:
         """Sends the Image to a Contact or a Group based on the Receiver"""
 
-        self._web(message=caption, receiver=receiver)
-
-        # time.sleep(7)
-        time.sleep(wait_time) # WpGuiv1.3        
-        # pg.click(WIDTH / 2, HEIGHT / 2)
-        # time.sleep(wait_time - 7)
-        # time.sleep(wait_time/2)  # WpGuiv1.3
         self.copy_image(path=path)
-        if not self.check_number(number=receiver):                 
-            for char in caption:
-                if char == "\n":
-                    pg.hotkey("shift", "enter")
-                else:
-                    pg.typewrite(char)
-        # else:
-        #     pg.typewrite("  ")
+        time.sleep(3)
+        self._web(message=caption, receiver=receiver)
+        
+        time.sleep(wait_time-3) # WpGuiv1.3        
+        # pg.click(WIDTH / 2, HEIGHT / 2)       
+        # self.copy_image(path=path)
+        # if caption:                 
+        #     for char in caption:
+        #         if char == "\n":
+        #             pg.hotkey("shift", "enter")
+        #         else:
+        #             pg.typewrite(char)
+        
         if system().lower() == "darwin":
             pg.hotkey("command", "v")
         else:
             pg.hotkey("ctrl", "v")
         try:
-            time.sleep(0.5)
+            time.sleep(1)
             pg.press("enter")            
         except:
             pass
         finally:
-            time.sleep(0.5)
+            time.sleep(1)
             pg.press("enter")
-        time.sleep(0.5)
+        # time.sleep(1)
 
 class whatkit:
     def sendwhatmsg_instantly(self,
@@ -253,9 +241,6 @@ class whatkit:
     ) -> None:
         """Send WhatsApp Message Instantly"""
 
-        # if not w_core.check_number(number=phone_no):
-        #     raise Exception("Country Code Missing in Phone Number!")
-        
         w_core.send_message(message=message, receiver=phone_no, wait_time=wait_time)
         w_log.log_message(_time=time.localtime(), receiver=phone_no, message=message)
         time.sleep(1)
@@ -272,9 +257,6 @@ class whatkit:
         close_time: int = 3,
     ) -> None:
         """Send a WhatsApp Message at a Certain Time"""
-
-        if not w_core.check_number(number=phone_no):
-            raise Exception("Country Code Missing in Phone Number!")
 
         if time_hour not in range(25) or time_min not in range(60):
             raise Warning("Invalid Time Format!")
@@ -370,9 +352,6 @@ class whatkit:
     ) -> None:
         """Send Image to a WhatsApp Contact or Group at a Certain Time"""
 
-        # if (not receiver.isalnum()) and (not w_core.check_number(number=receiver)):
-        #     raise Exception("Country Code Missing in Phone Number!")
-
         current_time = time.localtime()
         w_core.send_image(path=img_path, caption=caption, receiver=receiver, wait_time=wait_time)
         w_log.log_image(_time=current_time, path=img_path, receiver=receiver, caption=caption)
@@ -438,11 +417,14 @@ class WpMsg:
         result = "Task Completed." 
         error = "ERROR: Sending Interupted..."  
         w_core.check_connection()        
-        try:            
+        try:
+            pg.click(self.TextArea.winfo_rootx() + 10, self.TextArea.winfo_rooty() + 10)  
+            pg.hotkey('ctrl', 'a')  # Select all
+            pg.hotkey('ctrl', 'c')  # Copy          
             if self.message_list[1] != "":
                 message = self.message_list[1]  
             if self.message_list[1] != self.TextArea.get(1.0,END):
-                message = self.TextArea.get(1.0,END)
+                message = self.TextArea.get(1.0,END)            
                   
         except IndexError:
             # self.var.set("WARNING: Select proper CSV file")    
@@ -470,25 +452,16 @@ class WpMsg:
         # self.count = 1               # added count in v1.4
         
         try:
-            # for contact in self.num_list[1:]:
-            # for name, contact in zip_longest(self.reciver_name_list[1:], self.num_list[1:], fillvalue=""):
-            for index, contact in enumerate(self.num_list[1:], start=1):
-                
-                # contact = self.country_code+contact       # try without country code
-               
-                _message = message if not self.message_list[index] else self.message_list[index]
-                
-                try:                    
-                    _message= f"Hi {self.reciver_name_list[index]},\n" + _message
-                except IndexError:
-                    _message= "Hi,\n" + _message
-
+            # for contact in self.num_list[1:]:            
+            contacts = [x for x in self.num_list if x.strip()]           
+            for index, contact in enumerate(contacts[1:], start=1):                
+                # contact = self.country_code+contact       # try without country code               
+                _message = message if not self.message_list[index] else self.message_list[index]                
                 if self.image == "y":
-                    if not contact[1:].isdigit():
+                    if not contact[1:].isdigit():                        
                         error = """ERROR:Not Possible Image in whatsapp-group."""                        
                         raise ValueError(error)                        
-                    else:
-                        # print("image: {}".format(str(self.file_path.split("/")[-1])))
+                    else:                        
                         try:
                             if self.count == 1 and schedule_time != '':
                                 w_whats.sendwhats_image_schedule(contact, "{}".format(self.file_path), 
@@ -504,6 +477,7 @@ class WpMsg:
                                         
                 else:                                       
                     if not contact[1:].isdigit() :
+                        print("contact: {}".format(contact))
                         try:
                             if self.count == 1 and schedule_time != '':              # added count in v1.4
                                 w_whats.sendwhatmsg_to_group(contact, _message, 
@@ -562,6 +536,7 @@ class WpMsg:
         self.img_path.set("")  
         self.set_wait_timeField.delete(0,'end')
         self.set_close_timeField.delete(0,'end')
+        self.count=1
 
     # Function to open a specific .csv file
     def open_csv_file(self):
@@ -641,8 +616,7 @@ class WpMsg:
                                command=self.upload_image)        
         clear = Button(gui, text = "   Clear   ", bg = "Dark Grey",
                        command = self.Clear)    #fg = "Black",  
-        # Threading is used to avoid GUI not responding issue
-        # lambda func is used to avoid RuntimeError: threads can only be started once 
+        
         try:                  
             send = Button(gui, text = "   Send   ", bg = "Dark Grey",
                     command = lambda:threading.Thread(target=self.sendMessage).start())  
@@ -684,11 +658,7 @@ class WpMsg:
         # Start the GUI 
         gui.mainloop() 
 
-# Driver Code
-if __name__ == "__main__" :
-    # root = Tk()
-    # wp_gui = WpMsg(root)
-    # root.mainloop()
+if __name__ == "__main__" :    
     test = WpMsg()
     w_core = core()
     w_whats = whatkit()
