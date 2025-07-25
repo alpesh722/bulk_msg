@@ -8,6 +8,7 @@ import os
 import pathlib
 import requests
 import threading
+import pyperclip
 import pyautogui as pg
 import webbrowser as web
 from tkinter import *
@@ -19,7 +20,7 @@ from datetime import datetime
 from typing import Optional
 from urllib.parse import quote
 from itertools import zip_longest
-
+from openpyxl import load_workbook
 pg.FAILSAFE = False
 WIDTH, HEIGHT = pg.size()
 
@@ -89,7 +90,7 @@ class core:
     def check_number(self,number: str) -> bool:
         """Checks the Number to see if contains the Country Code"""
 
-        return "+" in number or "_" in number
+        return number[1:].isdigit() #"+" in number or "_" in number
 
 
     def close_tab(self,wait_time: int = 2) -> None:
@@ -162,7 +163,7 @@ class core:
 
     def copy_image(self,path: str) -> None:
         """Copy the Image to Clipboard based on the Platform"""
-
+        
         if system().lower() == "linux":
             if pathlib.Path(path).suffix in (".PNG", ".png"):
                 os.system(f"copyq copy image/png - < {path}")
@@ -173,20 +174,21 @@ class core:
                     f"File Format {pathlib.Path(path).suffix} is not Supported!"
                 )
         elif system().lower() == "windows":
+            
             from io import BytesIO
 
             import win32clipboard
-            # from PIL import Image
-
-            image = Image.open(path)
+            # from PIL import Image            
+            image = Image.open(path) #WpMsg.img_file_path            
             output = BytesIO()
             image.convert("RGB").save(output, "BMP")
             data = output.getvalue()[14:]
-            output.close()
+            output.close()            
             win32clipboard.OpenClipboard()
             win32clipboard.EmptyClipboard()
             win32clipboard.SetClipboardData(win32clipboard.CF_DIB, data)
             win32clipboard.CloseClipboard()
+
         elif system().lower() == "darwin":
             if pathlib.Path(path).suffix in (".jpg", ".jpeg", ".JPG", ".JPEG"):
                 os.system(
@@ -197,12 +199,12 @@ class core:
                     f"File Format {pathlib.Path(path).suffix} is not Supported!"
                 )
         else:
-            raise Exception(f"Unsupported System: {system().lower()}")
+            raise Exception(f"Unsupported System: {system().lower()}")     
 
 
     def send_image(self,path: str, caption: str, receiver: str, wait_time: int) -> None:
         """Sends the Image to a Contact or a Group based on the Receiver"""
-
+        
         self.copy_image(path=path)
         time.sleep(3)
         self._web(message=caption, receiver=receiver)
@@ -229,7 +231,7 @@ class core:
         finally:
             time.sleep(1)
             pg.press("enter")
-        # time.sleep(1)
+        time.sleep(1)
 
 class whatkit:
     def sendwhatmsg_instantly(self,
@@ -350,9 +352,9 @@ class whatkit:
         tab_close: bool = True,
         close_time: int = 3,
     ) -> None:
-        """Send Image to a WhatsApp Contact or Group at a Certain Time"""
-
+        """Send Image to a WhatsApp Contact or Group at a Certain Time"""        
         current_time = time.localtime()
+        
         w_core.send_image(path=img_path, caption=caption, receiver=receiver, wait_time=wait_time)
         w_log.log_image(_time=current_time, path=img_path, receiver=receiver, caption=caption)
         if tab_close:
@@ -389,7 +391,7 @@ class whatkit:
             f"In {sleep_time} Seconds WhatsApp will open and after {wait_time} Seconds Message will be Delivered!"
         )
         
-        time.sleep(sleep_time)
+        time.sleep(sleep_time)        
         w_core.send_image(path=img_path, caption=caption, receiver=receiver, wait_time=wait_time)
         w_log.log_image(_time=current_time, path=img_path, receiver=receiver, caption=caption)
         if tab_close:
@@ -410,9 +412,9 @@ class WpMsg:
         self.var = "Status" 
         self.csv_path = "No file selected..!"
         self.img_path = ""   
-        self.count = 1     
-
-    
+        self.img_file_path=""
+        self.count = 1 
+            
     def sendMessage(self) :          
         result = "Task Completed." 
         error = "ERROR: Sending Interupted..."  
@@ -421,13 +423,13 @@ class WpMsg:
             pg.click(self.TextArea.winfo_rootx() + 10, self.TextArea.winfo_rooty() + 10)  
             pg.hotkey('ctrl', 'a')  # Select all
             pg.hotkey('ctrl', 'c')  # Copy          
-            if self.message_list[1] != "":
-                message = self.message_list[1]  
-            if self.message_list[1] != self.TextArea.get(1.0,END):
-                message = self.TextArea.get(1.0,END)            
+            # if self.message_list[1] != "":
+            #     message = self.message_list[1]  
+            # if self.message_list[1] != self.TextArea.get(1.0,END):
+            message = self.TextArea.get(1.0,END)            
                   
         except IndexError:
-            # self.var.set("WARNING: Select proper CSV file")    
+            # self.var.set("WARNING: Select proper XLSX file")    
             message = self.TextArea.get(1.0,END)
         
         print("Message: {}".format(message))
@@ -439,37 +441,37 @@ class WpMsg:
         if schedule_time != '':   
             hour = int(schedule_time[:2])
             minut = int(schedule_time[3:])        
-            print("Scheduled Time: ",self.set_timeField.get())
-        
-        if self.num_list == []:
-            self.var.set("WARNING: Select proper CSV file") 
-            return False
+            print("Scheduled Time: ",self.set_timeField.get())       
 
         if self.set_wait_timeField.get() != "":
             self.wait_time = int(self.set_wait_timeField.get())
         if self.set_close_timeField.get() != "":
             self.close_time = int(self.set_close_timeField.get())
-        # self.count = 1               # added count in v1.4
+        # self.count = 1               # added count in v1.4        
         
-        try:
-            # for contact in self.num_list[1:]:            
-            contacts = [x for x in self.num_list if x.strip()]           
-            for index, contact in enumerate(contacts[1:], start=1):                
-                # contact = self.country_code+contact       # try without country code               
-                _message = message if not self.message_list[index] else self.message_list[index]                
-                if self.image == "y":
+        wb = load_workbook(self.file_path)
+        ws = wb.active  # Or wb['SheetName']
+        
+        for line in ws.iter_rows(min_row=2, max_row=ws.max_row, values_only=True):  
+            if line[0] is None:                
+                break           
+            contact=str(line[0]).strip()
+            pyperclip.copy(str(line[1]))            
+            try:                    
+                _message = message #if not self.message_list[index] else self.message_list[index]                
+                if self.image == "y":                    
                     if not contact[1:].isdigit():                        
                         error = """ERROR:Not Possible Image in whatsapp-group."""                        
                         raise ValueError(error)                        
                     else:                        
                         try:
                             if self.count == 1 and schedule_time != '':
-                                w_whats.sendwhats_image_schedule(contact, "{}".format(self.file_path), 
+                                w_whats.sendwhats_image_schedule(contact, "{}".format(self.img_file_path), 
                                                         hour, minut, _message, 
                                                         self.wait_time, 
                                                         True, self.close_time)
-                            else:                                
-                                w_whats.sendwhats_image(contact, "{}".format(self.file_path), 
+                            else:                                                           
+                                w_whats.sendwhats_image(contact, "{}".format(self.img_file_path), 
                                                                 _message, self.wait_time, 
                                                                 True, self.close_time)
                         except:
@@ -498,28 +500,29 @@ class WpMsg:
                             w_whats.sendwhatmsg(contact, _message, hour, 
                                                     minut , self.wait_time, 
                                                     True, self.close_time)          
-                               
+                            
                         else:
                             w_whats.sendwhatmsg_instantly(contact, _message, 
                                                             self.wait_time, 
                                                             True, self.close_time)
                 self.count +=1 
                 time.sleep(2.5)        
-            # self.sendField.insert(10, str(result)) 
-            self.send_lable.config(fg='blue',font=("TimesNewRoman",12))
-            self.var.set(result)
+            
         
-        except KeyboardInterrupt:
-            self.send_lable.config(fg='brown',font=("TimesNewRoman",12))
-            self.var.set(str("Execution Terminate"))
-            sys.exit(1)
+            except KeyboardInterrupt:
+                self.send_lable.config(fg='brown',font=("TimesNewRoman",12))
+                self.var.set(str("Execution Terminate"))
+                sys.exit(1)
+            
+            except Exception as e:
+                self.send_lable.config(fg='red',font=("TimesNewRoman",12))
+                self.var.set(error)
+                # self.sendField.insert(10, str(error))
+                print("{}\n{}".format(error,e))
         
-        except Exception as e:
-            self.send_lable.config(fg='red',font=("TimesNewRoman",12))
-            self.var.set(error)
-            # self.sendField.insert(10, str(error))
-            print("{}\n{}".format(error,e))
-
+        # self.sendField.insert(10, str(result)) 
+        self.send_lable.config(fg='blue',font=("TimesNewRoman",12))
+        self.var.set(result)
         print("+++++ Completed. +++++")         
         
     # Function for clearing the contents of all text entry boxes 
@@ -539,62 +542,37 @@ class WpMsg:
         self.count=1
 
     # Function to open a specific .csv file
-    def open_csv_file(self):
-        num = []
-        msg = []
-        names=[]
-        t_list = []    
-        file_path = filedialog.askopenfilename(defaultextension=".csv", 
-                                               filetypes=[("CSV Files", "*.csv")])
-        if file_path:
-            self.csv_path.set(str(file_path.split("/")[-1]))  
-            self.var.set("Status") 
-            try:
-                with open(file_path, "r") as csv_file:
-                    # Read and display the CSV file's contents
-                    csvFile = csv.reader(csv_file)
-                    for line in csvFile:    
-                        _num=line[0].strip()
-                        num.append(_num)
-                        msg.append(line[1])
-                        # t_list.append(line[2])  
-                        names.append(line[3])                  
-                self.num_list = num
-                self.message_list = msg
-                # self.time_list = t_list
-                self.reciver_name_list = names
-            except Exception as e:
-                print(f"Error: {e}")  
-        if self.message_list[1] != "":
-            self.TextArea.insert(END,self.message_list[1])
-        else:
-            self.TextArea.insert(END,"Write Text Message Here..!")
+    def open_csv_file(self):        
+        self.file_path = filedialog.askopenfilename(defaultextension=".xlsx", 
+                                               filetypes=[("XLSX Files", "*.xlsx")])
+        if self.file_path:
+            self.csv_path.set(str(self.file_path.split("/")[-1]))  
+            self.var.set("Status")       
 
     # Define the function to upload and save the image
     def upload_image(self):
-        self.file_path = filedialog.askopenfilename()
-        if self.file_path:            
-            self.img_path.set(str(self.file_path.split("/")[-1]))
+        self.img_file_path = filedialog.askopenfilename()
+        if self.img_file_path:            
+            self.img_path.set(str(self.img_file_path.split("/")[-1]))
             try:
-                self.image_file = Image.open(self.file_path) 
+                image_file = Image.open(self.img_file_path) 
             except:
                 print("WARNING:Image file not readable")
                 pass           
-            if self.image_file:
+            if image_file:
                 self.image = "y"
-
+                self.TextArea.insert(END,"Write Text Message Here..!")
                                 
     def main(self):
         # Create a GUI window 
-        gui = Tk()   
-        
+        gui = Tk()       
         gui.configure(background = "light grey")    
         gui.title("WhatsApp- Bulk Message Sender [SLS]")    
         gui.geometry("1000x600")   
         self.var = StringVar()
         self.csv_path = StringVar()
         self.img_path = StringVar()
-        csv_text = Label(gui,text = " Browse CSV File for numbers :",
+        csv_text = Label(gui,text = " Browse XLSX File for numbers :",
                          bg = "Light Grey", font=("TimesNewRoman",12))                       
         message = Label(gui,text = " Message :",bg = "Light Grey",
                         font=("TimesNewRoman",12))                 
@@ -610,7 +588,7 @@ class WpMsg:
                                 height=2, width = 20, font=("TimesNewRoman",12)) 
         self.TextArea = Text(gui, height = 5, width = 55)
         # Create a button to open the .csv file
-        open_button = Button(gui, text="Click Here to Upload CSV file", 
+        open_button = Button(gui, text="Click Here to Upload XLSX file", 
                             command=self.open_csv_file)   
         upload_button = Button(gui, text="Click Here to Upload Image", 
                                command=self.upload_image)        
